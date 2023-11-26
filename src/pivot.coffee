@@ -140,6 +140,33 @@ callWithJQuery ($) ->
             value: -> @inner.value() / data.getAggregator(@selector...).inner.value()
             numInputs: wrapped(x...)().numInputs
 
+        movingAverage: (formatter=usFmt) -> (arg) ->
+            attr = arg[0]
+            (data, rowKey, colKey) ->
+                sumNum: 0
+                push: (record) ->
+                    @sumNum += parseFloat(record[attr]) if not isNaN parseFloat(record[attr])
+                value: ->
+                    colkeys = data.getColKeys()
+                    counter = 0
+                    flat_col_key = colKey.join(String.fromCharCode(0))
+                    itter = undefined
+                    for item in colKeys
+                        flat_item = item.join(String.fromCharCode(0))
+                        itter = counter if flat_item == flat_col_key
+                        counter++
+                    prev_value = 0
+                    denom = 1
+                    if itter > 0
+                        for i in [1..itter + 1]
+                            aggregator = data.getAggregator(rowKey, colKeys[itter - i])
+                            if 'sum' in aggregator
+                                prev_value += aggregator.sum
+                                denom++
+                    (@sumNum + prev_value) / denom
+                format: formatter
+                numInputs: 1
+
     aggregatorTemplates.countUnique = (f) -> aggregatorTemplates.uniques(((x) -> x.length), f)
     aggregatorTemplates.listUnique =  (s) -> aggregatorTemplates.uniques(((x) -> x.sort(naturalSort).join(s)), ((x)->x))
     aggregatorTemplates.max =         (f) -> aggregatorTemplates.extremes('max', f)
